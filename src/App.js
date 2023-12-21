@@ -5,12 +5,14 @@ import "./App.css";
 
 function App() {
   const [userInput, setUserInput] = useState("");
-  const [previousInput, setPreviousInput] = useState("");
+  // const [previousInput, setPreviousInput] = useState("");
   const [paragraph] = useState("Hello World");
+  const [rightInput, setRightInput] = useState("");
+  const [wrongInput, setWrongInput] = useState("");
 
   const handleInputChange = (event) => {
     const currentValue = event.target.value;
-    setPreviousInput(userInput);
+    // setPreviousInput(userInput);
     checkTyping(currentValue);
     setUserInput(currentValue);
   };
@@ -19,10 +21,14 @@ function App() {
     const currentParagraphIndex = userInput.length;
     const userLastInput = input[input.length - 1];
     if (paragraph[currentParagraphIndex] !== userLastInput) {
+      //! need to change to set only from the point it was wrong forwards.
+      setWrongInput(userInput);
       console.log("wrong letter");
       console.log(currentParagraphIndex);
       return;
     }
+    //! starting to write right answer one character delay
+    setRightInput(userInput);
     console.log("right letter");
     if (currentParagraphIndex === paragraph.length - 1) {
       console.log("you finished the paragraph.");
@@ -43,10 +49,20 @@ function App() {
           placeholder="Start typing..."
           maxLength={paragraph.length}
         ></input>
-        <p>{userInput}</p>
+        <p>
+          <span style={rightAnswer}>
+            {rightInput}
+            {/* {userInput} */}
+          </span>
+          <span style={wrongAnswer}>
+            {wrongInput}
+            {/* {userInput} */}
+          </span>
+        </p>
       </header>
     </div>
   );
 }
-
+const rightAnswer = {color: "green"};
+const wrongAnswer = {color: "red"};
 export default App;
