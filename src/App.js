@@ -1,68 +1,86 @@
 /** @format */
 
-import React, {useState} from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
 import "./App.css";
 
-function App() {
+// todo: the cursor can add characters not at the end of the input.
+//! it should be only from the end adding and deleting.
+
+const App = () => {
+  const initialParagraph = "Hello World";
+
+  const [
+    paragraph /* todo: make a function that sets a new paragraph -> setParagraph*/,
+  ] = useState(initialParagraph);
   const [userInput, setUserInput] = useState("");
-  // const [previousInput, setPreviousInput] = useState("");
-  const [paragraph] = useState("Hello World");
   const [rightInput, setRightInput] = useState("");
   const [wrongInput, setWrongInput] = useState("");
 
-  const handleInputChange = (event) => {
-    const currentValue = event.target.value;
-    // setPreviousInput(userInput);
-    checkTyping(currentValue);
-    setUserInput(currentValue);
+  const cursorRef = useRef();
+
+  const updateInputs = useCallback(() => {
+    const newRightInput = [];
+    const newWrongInput = [];
+
+    for (let i = 0; i < userInput.length; i++) {
+      if (userInput[i] === paragraph[i]) {
+        newRightInput.push(userInput[i]);
+      } else {
+        newWrongInput.push(userInput[i]);
+      }
+    }
+
+    setRightInput(newRightInput.join(""));
+    setWrongInput(newWrongInput.join(""));
+  }, [userInput, paragraph]);
+
+  useEffect(() => {
+    updateInputs();
+  }, [userInput, updateInputs, paragraph]);
+
+  const handleInputChange = (e) => {
+    const input = e.target.value;
+
+    // Ensure the cursor is always at the end
+    if (cursorRef.current && e.target.selectionStart !== input.length) {
+      cursorRef.current.setSelectionRange(input.length, input.length);
+    }
+
+    setUserInput(input);
   };
 
-  const checkTyping = (input) => {
-    const currentParagraphIndex = userInput.length;
-    const userLastInput = input[input.length - 1];
-    if (paragraph[currentParagraphIndex] !== userLastInput) {
-      //! need to change to set only from the point it was wrong forwards.
-      setWrongInput(userInput);
-      console.log("wrong letter");
-      console.log(currentParagraphIndex);
-      return;
+  const handleKeyDown = (e) => {
+    // Intercept Backspace key to prevent moving the cursor
+    if (
+      e.key === "Backspace" &&
+      cursorRef.current &&
+      cursorRef.current.selectionStart !== userInput.length
+    ) {
+      setUserInput(userInput.slice(0, -1));
+      e.preventDefault();
     }
-    //! starting to write right answer one character delay
-    setRightInput(userInput);
-    console.log("right letter");
-    if (currentParagraphIndex === paragraph.length - 1) {
-      console.log("you finished the paragraph.");
-    }
-    console.log(currentParagraphIndex);
   };
 
   return (
     <div className="App">
       <header className="App-header">
-        <h3>Paragraph to type:</h3>
-        <p>{paragraph}</p>
-        <input
-          type="text"
-          id="userInput"
-          value={userInput}
-          onChange={handleInputChange}
-          placeholder="Start typing..."
-          maxLength={paragraph.length}
-        ></input>
-        <p>
-          <span style={rightAnswer}>
-            {rightInput}
-            {/* {userInput} */}
-          </span>
-          <span style={wrongAnswer}>
-            {wrongInput}
-            {/* {userInput} */}
-          </span>
-        </p>
+        <div>
+          <p>{paragraph}</p>
+          <input
+            type="text"
+            value={userInput}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            ref={cursorRef}
+          />
+        </div>
+        <div>
+          <span style={{color: "green"}}>{rightInput}</span>
+          <span style={{color: "red"}}>{wrongInput}</span>
+        </div>
       </header>
     </div>
   );
-}
-const rightAnswer = {color: "green"};
-const wrongAnswer = {color: "red"};
+};
+
 export default App;
