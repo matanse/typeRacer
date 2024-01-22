@@ -3,45 +3,80 @@
 import React, {useEffect, useRef, useState} from "react";
 import "./App.css";
 
-// todo: the cursor can add characters not at the end of the input.
-//! it should be only from the end adding and deleting.
-
 const App = () => {
   const initialParagraph = "Hello World";
 
   const [paragraph, setParagraph] = useState(initialParagraph);
   const [userInput, setUserInput] = useState("");
+  const [countdown, setCountdown] = useState(null);
+  const [showGo, setShowGo] = useState(false);
+  const [startTime, setStartTime] = useState(null);
+  const [wpm, setWPM] = useState(null);
+  const [showWPM, setShowWPM] = useState(false);
+  const [inputEnabled, setInputEnabled] = useState(true);
   const cursorRef = useRef();
 
   useEffect(() => {
-    // Ensure the cursor is always at the end
-    if (cursorRef.current) {
-      cursorRef.current.setSelectionRange(userInput.length, userInput.length);
+    let timer;
+
+    if (countdown !== null && countdown > 0) {
+      timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+    } else {
+      if (!showGo && countdown === 0) {
+        setShowGo(true);
+        cursorRef.current.focus(); // Set focus on the input field
+        setStartTime(new Date());
+      } else if (showGo) {
+        const elapsedTime = (new Date() - startTime) / 1000; // in seconds
+        const wordsTyped = userInput
+          .split(" ")
+          .filter((word) => word !== "").length;
+        const wordsPerMinute = Math.round((wordsTyped / elapsedTime) * 60);
+        setWPM(wordsPerMinute);
+        setTimeout(() => {
+          setShowWPM(true);
+        }, 1000);
+      }
     }
-  }, [userInput]);
+
+    return () => clearTimeout(timer);
+  }, [countdown, showGo, startTime, userInput]);
 
   const handleInputChange = (e) => {
+    if (!showGo) {
+      // If "GO" has not appeared yet, do not update userInput
+      return;
+    }
+
     const input = e.target.value;
 
-    if (input.endsWith(" ")) {
-      // If the last character is a space, clear the input
-      setUserInput("");
-    } else {
-      setUserInput(input);
+    // Check if space is pressed
+    // if (input.endsWith(" ")) {
+    //   setParagraph(paragraph.substr(wordEndIndex(paragraph), paragraph.length));
+    //   // setUserInput("");
+    // } else {
+    setUserInput(input);
+    // }
+  };
+
+  const wordEndIndex = (str) => {
+    let index = 0;
+    for (let i = 0; i < str.length; i++) {
+      if (str[i] === " ") {
+        index = i + 1;
+        break;
+      }
     }
+    return index;
   };
 
   const renderParagraph = () => {
-    const characters = paragraph.split("");
-
-    return characters.map((char, index) => {
-      let color = "white";
-
-      if (userInput[index] === char) {
-        color = "green";
-      } else if (userInput[index]) {
-        color = "red";
-      }
+    return paragraph.split("").map((char, index) => {
+      const isCorrect = userInput[index] === char;
+      const isCurrent = index < userInput.length;
+      const color = isCorrect ? "green" : isCurrent ? "red" : "white";
 
       return (
         <span key={index} style={{color}}>
@@ -50,98 +85,65 @@ const App = () => {
       );
     });
   };
+
+  const handleStartClick = () => {
+    setCountdown(5);
+    setShowGo(false);
+    setShowWPM(false);
+    setWPM(null);
+    cursorRef.current.focus(); // Set focus on the input field
+  };
+
   return (
     <div className="App">
       <header className="App-header">
         <div>
           <p>{renderParagraph()}</p>
+          {showWPM ? (
+            <p>{wpm} wpm</p>
+          ) : showGo ? (
+            <p style={{fontSize: "50px", marginTop: "10px", color: "green"}}>
+              GO
+            </p>
+          ) : countdown !== null ? (
+            <div
+              style={{
+                fontSize: "50px",
+                marginTop: "10px",
+                color: countdown <= 2 ? "yellow" : "red",
+              }}
+            >
+              {countdown}
+            </div>
+          ) : (
+            <button
+              onClick={handleStartClick}
+              style={{
+                width: "150px",
+                height: "150px",
+                borderRadius: "50%",
+                backgroundColor: "red",
+                color: "green",
+                cursor: "pointer",
+                fontSize: "50px",
+              }}
+            >
+              Start
+            </button>
+          )}
           <input
             type="text"
             value={userInput}
             onChange={handleInputChange}
             ref={cursorRef}
+            style={{width: "100%", marginTop: "10px"}}
+            disabled={!inputEnabled}
+            autoFocus // Add this attribute
           />
         </div>
       </header>
     </div>
   );
 };
-
-// const App = () => {
-//   const initialParagraph = "Hello World";
-
-//   const [
-//     paragraph /* todo: make a function that sets a new paragraph -> setParagraph*/,
-//   ] = useState(initialParagraph);
-//   const [userInput, setUserInput] = useState("");
-//   const [rightInput, setRightInput] = useState("");
-//   const [wrongInput, setWrongInput] = useState("");
-
-//   const cursorRef = useRef();
-
-//   const updateInputs = useCallback(() => {
-//     const newRightInput = [];
-//     const newWrongInput = [];
-
-//     for (let i = 0; i < userInput.length; i++) {
-//       if (userInput[i] === paragraph[i]) {
-//         newRightInput.push(userInput[i]);
-//       } else {
-//         newWrongInput.push(userInput[i]);
-//       }
-//     }
-
-//     setRightInput(newRightInput.join(""));
-//     setWrongInput(newWrongInput.join(""));
-//   }, [userInput, paragraph]);
-
-//   useEffect(() => {
-//     updateInputs();
-//   }, [userInput, updateInputs, paragraph]);
-
-//   const handleInputChange = (e) => {
-//     const input = e.target.value;
-
-//     // Ensure the cursor is always at the end
-//     if (cursorRef.current && e.target.selectionStart !== input.length) {
-//       cursorRef.current.setSelectionRange(input.length, input.length);
-//     }
-
-//     setUserInput(input);
-//   };
-
-//   const handleKeyDown = (e) => {
-//     // Intercept Backspace key to prevent moving the cursor
-//     if (
-//       e.key === "Backspace" &&
-//       cursorRef.current &&
-//       cursorRef.current.selectionStart !== userInput.length
-//     ) {
-//       setUserInput(userInput.slice(0, -1));
-//       e.preventDefault();
-//     }
-//   };
-
-//   return (
-//     <div className="App">
-//       <header className="App-header">
-//         <div>
-//           <p>{paragraph}</p>
-//           <input
-//             type="text"
-//             value={userInput}
-//             onChange={handleInputChange}
-//             onKeyDown={handleKeyDown}
-//             ref={cursorRef}
-//           />
-//         </div>
-//         <div>
-//           <span style={{color: "green"}}>{rightInput}</span>
-//           <span style={{color: "red"}}>{wrongInput}</span>
-//         </div>
-//       </header>
-//     </div>
-//   );
-// };
 
 export default App;
